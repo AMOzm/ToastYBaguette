@@ -67,6 +67,12 @@ public class PatrolWObstacles : MonoBehaviour
     private bool spawnAtFirstLocation = true;
     private bool PawPActive = false;
     [SerializeField] private int PawOffset;
+    public GameObject spherePrefab; // Assign your sphere prefab in the inspector
+    public Vector2 sizeRange = new Vector2(6f, 20f); // Min and max random sizes
+    public float upwardForce = 2f; // Force applied upwards
+    public float lifetime = 1f; // Time before the spheres are destroyed
+    public int numberOfSpheres = 20; // Number of spheres to spawn
+    public int framesBetweenSpawns = 1; // Number of frames to wait between spawns
 
     void Start()
     {
@@ -285,6 +291,7 @@ public class PatrolWObstacles : MonoBehaviour
         // Detect when speed changes from 0 to positive
         if (toWalk && !isPrefabSpawned)
         {
+            //SpawnSmokePuff();
             // Deactivate the specified child
             UpdateChildStates();
 
@@ -302,6 +309,7 @@ public class PatrolWObstacles : MonoBehaviour
         // Detect when speed changes from positive to 0
         else if (!toWalk && !OPrefabSpawned)
         {
+            //SpawnSmokePuff();
             // Deactivate the active child
             UpdateChildStates();
 
@@ -317,6 +325,7 @@ public class PatrolWObstacles : MonoBehaviour
     }
     IEnumerator HandlePrefabLifecycle(GameObject spawnedPrefab, bool activatingActiveChild)
     {
+        SpawnSmokePuff();
         activeChild.SetActive(false);
         inactiveChild.SetActive(false);
         // Wait for 1 second
@@ -513,5 +522,42 @@ public class PatrolWObstacles : MonoBehaviour
     Vector3 GetTargetDirection()
     {
         return GetTargetPosition() - transform.position;
+    }
+    public void SpawnSmokePuff()
+    {
+        StartCoroutine(SpawnSpheresOverTime());
+    }
+
+    private IEnumerator SpawnSpheresOverTime()
+    {
+        for (int i = 0; i < numberOfSpheres; i++)
+        {
+            // Instantiate sphere prefab at the spawn point
+            GameObject sphere = Instantiate(spherePrefab, prefabSpawnLocation.position, Quaternion.identity);
+
+            // Set random scale for the sphere
+            float randomSize = Random.Range(sizeRange.x, sizeRange.y);
+            sphere.transform.localScale = Vector3.one * randomSize;
+
+            // Add a Rigidbody to the sphere if it doesn't already have one
+            Rigidbody rb = sphere.GetComponent<Rigidbody>();
+            if (rb == null)
+            {
+                rb = sphere.AddComponent<Rigidbody>();
+            }
+
+            // Apply upward force to the sphere
+            Vector3 randomDirection = Vector3.up + new Vector3(Random.Range(-0.2f, 0.2f), 0, Random.Range(-0.2f, 0.2f));
+            rb.AddForce(randomDirection.normalized * upwardForce, ForceMode.Impulse);
+
+            // Destroy the sphere after the specified lifetime
+            Destroy(sphere, lifetime);
+
+            // Wait for the specified number of frames before spawning the next sphere
+            for (int frame = 0; frame < framesBetweenSpawns; frame++)
+            {
+                yield return null;
+            }
+        }
     }
 }
